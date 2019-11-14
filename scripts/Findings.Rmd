@@ -1,0 +1,14 @@
+---
+title: "Findings"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+og_data = read_tsv("../data/crunchbase_rounds_20191114.tsv")
+og_data %>% select(-state_code)
+```
+
