@@ -5,10 +5,30 @@ output: html_notebook
 
 ```{r}
 library(tidyverse)
+library(countrycode)
+library(sqldf)
 ```
 
 ```{r}
 og_data = read_tsv("../data/crunchbase_rounds_20191114.tsv")
-og_data %>% select(-state_code)
+funding_situations = read_csv("../data/funding_situations.csv")
+industry = read_csv("../data/industry.csv")
 ```
 
+```{r}
+# adding countries
+countries = countrycode(og_data$country_code, 'iso3c', 'country.name')
+og_data = cbind(og_data, country_name = countries)
+# segmenting funding situations
+sqldf("SELECT og_data.*, funding_situations.situation
+       FROM og_data INNER JOIN funding_situations
+                    ON funding_situations.investment_type = og_data.investment_type") -> og_data
+# removing unwanted data
+og_data %>% select(-state_code, -region, -city, -raised_amount, -raised_amount_currency_code, -raised_amount_currency_code_1, -post_money_valuation, -investor_names, -post_money_currency_code) -> og_data
+# investor ownership calculation
+og_data %>% mutate(investor_ownership = raised_amount_usd / post_money_valuation_usd) -> og_data
+# industry attachment
+sqldf("SELECT og_data.*, industry.industry
+       FROM og_data INNER JOIN industry
+       ON industry.name = company_name") -> og_with_industries
+```
