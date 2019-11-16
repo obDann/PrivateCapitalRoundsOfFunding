@@ -27,8 +27,14 @@ sqldf("SELECT og_data.*, funding_situations.situation
 og_data %>% select(-state_code, -region, -city, -raised_amount, -raised_amount_currency_code, -raised_amount_currency_code_1, -post_money_valuation, -investor_names, -post_money_currency_code) -> og_data
 # investor ownership calculation
 og_data %>% mutate(investor_ownership = raised_amount_usd / post_money_valuation_usd) -> og_data
+# fixing up TAN and ROM
+og_data$country_name[which(og_data$country_code=="TAN")] = "Fm Tanganyik"
+og_data$country_name[which(og_data$country_code=="ROM")] = "Romania"
 # industry attachment
 sqldf("SELECT og_data.*, industry.industry
        FROM og_data INNER JOIN industry
        ON industry.name = company_name") -> og_with_industries
 ```
+
+
+
