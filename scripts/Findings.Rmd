@@ -190,7 +190,7 @@ sqldf("SELECT all_region_funding.*, alt_pal.*
 ```{r}
 leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>% addCircleMarkers(data = with_pals, lng = ~lon, lat = ~lat,
                                                color = ~pspal, opacity = 0.65, radius = 10) %>% 
-  addLegend(data = with_pals, colors = pspal, title = "Summation of amount raised per city", labels = alt_pal$range_str)
+  addLegend(data = with_pals, colors = pspal, title = "Summation of amount raised per city (Graced)", labels = alt_pal$range_str)
 ```
 #### Assessment
 ```{r}
@@ -434,10 +434,7 @@ pt1 %>% filter(year > 1990)
 ```
 
 ```{r}
-ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-5000000, 30000000)) + geom_smooth(fill = NA) + ggtitle("Summation of amount raised per investment type (Graced)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Sum of amount raised") + xlab("Year") + facet_grid(investment_type ~ .) + scale_x_continuous(breaks = scales::pretty_breaks(n = 10))
-```
-```{r}
-ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-5000000000, 30000000000)) + geom_smooth(method = "lm", fill = NA) + ggtitle("Summation of amount raised per investment type (Graced)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Sum of amount raised") + xlab("Year")
+ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-5000000000, 30000000000)) + geom_smooth(method = "lm", fill = NA) + ggtitle("Summation of amount raised per investment type (Late Game Safety)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Sum of amount raised") + xlab("Year") + facet_grid(investment_type ~ .)
 ```
 
 ```{r}
@@ -467,3 +464,85 @@ sqldf("SELECT SUM(raised_amount_usd) raised_amount, investment_type, year
 pt5 = pt4 %>% filter(investment_type != "corporate_round")
 ```
 
+## Publicity and Beyond
+
+```{r}
+pab = og_data %>% filter(situation == "Publicity and Beyond")
+```
+
+```{r}
+sqldf("SELECT SUM(raised_amount_usd) raised_amount, investment_type, year
+      FROM pab
+      GROUP BY year, investment_type") -> pt1
+pt1 = pt1 %>% filter(year != 2019)
+```
+
+```{r}
+ggplot(pt1, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + scale_y_continuous(labels = scales::comma) + geom_smooth(method = "lm", fill = NA) + ggtitle("Summation of amount raised per investment type (Publicity and Beyond)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Sum of amount raised") + xlab("Year")
+```
+
+We may want to look at post_ipo equity and ICO separately
+
+
+```{r}
+pt2 = pt1 %>% filter(investment_type != "post_ipo_equity") 
+ggplot(pt2, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-250000000, 1500000000)) + geom_smooth(method = "lm", fill = NA) + ggtitle("Summation of amount raised per investment type (Publicity and Beyond)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Sum of amount raised") + xlab("Year") +scale_x_continuous(breaks = scales::pretty_breaks(n = 9))
+```
+
+```{r}
+pab %>% filter(year == 2018 & investment_type == "post_ipo_secondary")
+```
+
+## Publicity Industry
+```{r}
+og_with_industries %>% filter(situation == "Publicity and Beyond") -> pub_industry
+```
+
+```{r}
+sqldf("SELECT SUM(raised_amount_usd) raised_amount, industry
+       FROM pub_industry
+       GROUP BY industry
+       ORDER BY raised_amount DESC") -> sum_industry_pub_all
+sum_industry_pub = head(sum_industry_pub_all, 7)
+```
+
+```{r}
+sum_industry_pub_all
+```
+
+
+```{r}
+my_order = sum_industry_pub$industry
+sum_industry_pub$industry <- factor(sum_industry_pub$industry, levels = my_order)
+ggplot(sum_industry_pub, aes(y=raised_amount, x=industry)) + 
+    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 industries within the public by total amount raised") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 10)) + xlab("Industry") + ylab("Summation of amount raised")
+```
+
+```{r}
+sqldf("SELECT AVG(raised_amount_usd) raised_amount, industry
+       FROM pub_industry
+       GROUP BY industry
+       ORDER BY raised_amount DESC") -> avg_industry_pub_all
+avg_industry_pub = head(avg_industry_pub_all, 7)
+
+my_order = avg_industry_pub$industry
+avg_industry_pub$industry <- factor(avg_industry_pub$industry, levels = my_order)
+ggplot(avg_industry_pub, aes(y=raised_amount, x=industry)) + 
+    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 industries within the public by average") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 10)) + xlab("Industry") + ylab("Average of amount raised")
+```
+
+
+## Distributions of funding, not including industry
+
+boxplot by situation
+
+```{r}
+out_liar = og_data %>% filter(raised_amount_usd < 100000000)
+ggplot(out_liar, aes(x = situation, y = raised_amount_usd)) + geom_boxplot()
+```
+
+Graced and crowdfunding seem similar
+
+Late Game Safety and Publicity
+
+Transitionary funding and liquidity coverage
