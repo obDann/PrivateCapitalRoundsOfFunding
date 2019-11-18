@@ -133,34 +133,23 @@ sqldf("SELECT SUM(raised_amount_usd) amount_raised, ciaco, lon, lat, country_nam
        GROUP BY ciaco, lon, lat") -> all_region_funding
 ```
 
-
-```{r}
-NA_funding = all_region_funding %>% filter(country_name == "Canada" | country_name == "United States")
-# canada_funding %>% leaflet() %>% addTiles() %>% addMarkers()
-```
-
-
+### Starting point
 ```{r}
 #binpal = colorBin("Reds", domain = 0:max(canada_funding$amount_raised))
 #canada_funding %>% 
-{my_pal = colorBin(c("#3B5284", "#00FF00"), domain = 1:7, bins = 7)
-
-leaflet() %>% addTiles() %>% addCircleMarkers(data = NA_funding, lng = ~lon, lat = ~lat,
-                                              color = ~my_pal(amount_raised), opacity = 1) %>% 
-  addLegend(data = NA_funding, pal = my_pal, values = ~amount_raised, title = "Summation of amount raised per city")}
-```
-
-```{r}
-my_pal = colorBin(c("#FDBCB4", "#333399"), domain = 1:6, bins = 5)
-pspal = c(my_pal(1), my_pal(2), my_pal(3), my_pal(4), my_pal(5))
+{NA_funding = all_region_funding %>% filter(country_name == "Canada" | country_name == "United States")
+# canada_funding %>% leaflet() %>% addTiles() %>% addMarkers()
+  
+my_pal = colorBin(c("#FDBCB4", "#333399"), domain = 1:5, bins = 4)
+pspal = c(my_pal(1), my_pal(2), my_pal(3), my_pal(4))
 
 the_min = min(NA_funding$amount_raised)
 range = max(NA_funding$amount_raised) - the_min
-interval = range / 5
+interval = range / 4
 
-start_rng = c(the_min, the_min + floor(interval*1) + 1, the_min + floor(interval*2) + 1, the_min + floor(interval*3) + 1, the_min + floor(interval*4) + 1)
+start_rng = c(the_min, the_min + floor(interval*1) + 1, the_min + floor(interval*2) + 1, the_min + floor(interval*3) + 1)
 
-end_rng = c(the_min + floor(interval*1), the_min + floor(interval*2), the_min + floor(interval*3), the_min + floor(interval*4), max(NA_funding$amount_raised))
+end_rng = c(the_min + floor(interval*1), the_min + floor(interval*2), the_min + floor(interval*3),max(NA_funding$amount_raised))
 
 alt_pal = data.frame(start_rng, end_rng, pspal)
 alt_pal = alt_pal %>% mutate(start_rng = as.numeric(start_rng), end_rng = as.numeric(end_rng))
@@ -170,24 +159,43 @@ sqldf("SELECT NA_funding.*, alt_pal.*
        FROM NA_funding INNER JOIN alt_pal
                        ON NA_funding.amount_raised >= alt_pal.start_rng
                        AND NA_funding.amount_raised <= alt_pal.end_rng") -> with_pals
+
+leaflet() %>% addTiles() %>% addCircleMarkers(data = NA_funding, lng = ~lon, lat = ~lat,
+                                              color = ~my_pal(amount_raised), opacity = 1) %>% 
+  addLegend(data = NA_funding, pal = my_pal, values = ~amount_raised, title = "Summation of amount raised per city")}
 ```
 
+### final_product
 ```{r}
-alt_pal
-```
+my_pal = colorBin(c("#FDBCB4", "#333399", "#121238"), domain = 1:6, bins = 5)
+pspal = c(my_pal(1), my_pal(2), my_pal(3), my_pal(4), my_pal(5))
 
+the_min = 0
+range = max(all_region_funding$amount_raised) - the_min
+
+start_rng = c(0, 1000001, 100000001, 1000000001, 10000000001)
+end_rng = c(1000000, 100000000, 1000000000, 10000000000, max(all_region_funding$amount_raised))
+alt_pal = data.frame(start_rng, end_rng, pspal)
+alt_pal = alt_pal %>% mutate(start_rng = as.numeric(start_rng), end_rng = as.numeric(end_rng))
+labels = c("0 - 1,000,000", "1,000,001 - 10,000,000", "10,000,001 - 100,000,000", "100,000,001 - 1,000,000,000", "1,000,000,000+")
+
+alt_pal %>% mutate(range_str = labels) -> alt_pal
+
+sqldf("SELECT all_region_funding.*, alt_pal.*
+       FROM all_region_funding INNER JOIN alt_pal
+                       ON all_region_funding.amount_raised >= alt_pal.start_rng
+                       AND all_region_funding.amount_raised <= alt_pal.end_rng") -> with_pals
+```
 
 ```{r}
 leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>% addCircleMarkers(data = with_pals, lng = ~lon, lat = ~lat,
                                                color = ~pspal, opacity = 0.65, radius = 10) %>% 
   addLegend(data = with_pals, colors = pspal, title = "Summation of amount raised per city", labels = alt_pal$range_str)
 ```
-
+#### Assessment
 ```{r}
-with_pals %>% select(amount_raised, start_rng, end_rng, ciaco)
+with_pals %>% filter(country_name == "Canada") %>% filter(amount_raised == max(amount_raised))
 ```
-
-
 
 
 ```{r}
@@ -197,35 +205,6 @@ sqldf("SELECT SUM(raised_amount_usd) amount_raised, country_name
        ORDER BY amount_raised DESC") -> all_country_graced
 all_country_graced %>% filter(!is.na(country_name)) -> all_country_graced
 ```
-
-```{r}
-all_country_graced
-```
-
-
-```{r}
-sqldf("SELECT A.amount_raised, B.*
-       FROM country_coord B INNER JOIN all_country_graced A
-                          ON A.country_name = B.country_name
-       ORDER BY amount_raised DESC") -> sum_country_graced
-```
-
-```{r}
-top_10_graced = head(sum_country_graced, 10)
-bottom_10_graced = tail(sum_country_graced, 20)
-```
-
-
-```{r}
-# moment of truth...
-leaflet() %>% addTiles() %>% addCircleMarkers(data = top_10_graced, lng = ~lon, lat = ~lat,
-                                              opacity = 1)
-```
-
-```{r}
-bottom_10_graced
-```
-
 
 ## crowdfunding and early stages
 
