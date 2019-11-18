@@ -143,12 +143,51 @@ NA_funding = all_region_funding %>% filter(country_name == "Canada" | country_na
 ```{r}
 #binpal = colorBin("Reds", domain = 0:max(canada_funding$amount_raised))
 #canada_funding %>% 
-{my_pal = colorBin(c("#3B5284", "#00FF00"), domain = min(NA_funding$amount_raised):max(NA_funding$amount_raised), bins = 7)
+{my_pal = colorBin(c("#3B5284", "#00FF00"), domain = 1:7, bins = 7)
 
 leaflet() %>% addTiles() %>% addCircleMarkers(data = NA_funding, lng = ~lon, lat = ~lat,
                                               color = ~my_pal(amount_raised), opacity = 1) %>% 
   addLegend(data = NA_funding, pal = my_pal, values = ~amount_raised, title = "Summation of amount raised per city")}
 ```
+
+```{r}
+my_pal = colorBin(c("#FDBCB4", "#333399"), domain = 1:6, bins = 5)
+pspal = c(my_pal(1), my_pal(2), my_pal(3), my_pal(4), my_pal(5))
+
+the_min = min(NA_funding$amount_raised)
+range = max(NA_funding$amount_raised) - the_min
+interval = range / 5
+
+start_rng = c(the_min, the_min + floor(interval*1) + 1, the_min + floor(interval*2) + 1, the_min + floor(interval*3) + 1, the_min + floor(interval*4) + 1)
+
+end_rng = c(the_min + floor(interval*1), the_min + floor(interval*2), the_min + floor(interval*3), the_min + floor(interval*4), max(NA_funding$amount_raised))
+
+alt_pal = data.frame(start_rng, end_rng, pspal)
+alt_pal = alt_pal %>% mutate(start_rng = as.numeric(start_rng), end_rng = as.numeric(end_rng))
+alt_pal %>% mutate(range_str = paste(as.character(start_rng), "-", as.character(end_rng))) -> alt_pal
+
+sqldf("SELECT NA_funding.*, alt_pal.*
+       FROM NA_funding INNER JOIN alt_pal
+                       ON NA_funding.amount_raised >= alt_pal.start_rng
+                       AND NA_funding.amount_raised <= alt_pal.end_rng") -> with_pals
+```
+
+```{r}
+alt_pal
+```
+
+
+```{r}
+leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>% addCircleMarkers(data = with_pals, lng = ~lon, lat = ~lat,
+                                               color = ~pspal, opacity = 0.65, radius = 10) %>% 
+  addLegend(data = with_pals, colors = pspal, title = "Summation of amount raised per city", labels = alt_pal$range_str)
+```
+
+```{r}
+with_pals %>% select(amount_raised, start_rng, end_rng, ciaco)
+```
+
+
 
 
 ```{r}
