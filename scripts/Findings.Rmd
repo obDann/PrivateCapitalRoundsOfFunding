@@ -16,6 +16,7 @@ og_data = read_tsv("../data/crunchbase_rounds_20191114.tsv")
 funding_situations = read_csv("../data/funding_situations.csv")
 industry = read_csv("../data/industry.csv")
 locations = read_csv("../data/locations.csv")
+country_coord = read_csv("../data/country_coord.csv")
 ```
 
 ```{r}
@@ -46,11 +47,6 @@ sqldf("SELECT og_data.*, industry.industry
        FROM og_data INNER JOIN industry
        ON industry.name = company_name") -> og_with_industries
 ```
-
-```{r}
-og_data
-```
-
 
 ## Graced
 
@@ -89,11 +85,6 @@ ggplot(pt2, aes(x = year, y = raised_amount, color = investment_type)) + geom_po
 
 ```{r}
 og_with_industries %>% filter(situation == "Graced") -> graced_industry
-```
-
-
-```{r}
-graced_industry
 ```
 
 ```{r}
@@ -144,7 +135,7 @@ sqldf("SELECT SUM(raised_amount_usd) amount_raised, ciaco, lon, lat, country_nam
 
 
 ```{r}
-canada_funding = all_region_funding %>% filter(country_name == "Canada")
+NA_funding = all_region_funding %>% filter(country_name == "Canada" | country_name == "United States")
 # canada_funding %>% leaflet() %>% addTiles() %>% addMarkers()
 ```
 
@@ -152,15 +143,49 @@ canada_funding = all_region_funding %>% filter(country_name == "Canada")
 ```{r}
 #binpal = colorBin("Reds", domain = 0:max(canada_funding$amount_raised))
 #canada_funding %>% 
-my_pal = colorNumeric(c("#3B5284", "#00FF00"), 0:max(canada_funding$amount_raised))
-leaflet() %>% addTiles() %>% addCircleMarkers(data = canada_funding, lng = ~lon, lat = ~lat,
+{my_pal = colorBin(c("#3B5284", "#00FF00"), domain = min(NA_funding$amount_raised):max(NA_funding$amount_raised), bins = 7)
+
+leaflet() %>% addTiles() %>% addCircleMarkers(data = NA_funding, lng = ~lon, lat = ~lat,
                                               color = ~my_pal(amount_raised), opacity = 1) %>% 
-  addLegend(data = canada_funding, pal = my_pal, values = ~amount_raised)
+  addLegend(data = NA_funding, pal = my_pal, values = ~amount_raised, title = "Summation of amount raised per city")}
 ```
 
 
+```{r}
+sqldf("SELECT SUM(raised_amount_usd) amount_raised, country_name
+       FROM graced
+       GROUP BY country_name
+       ORDER BY amount_raised DESC") -> all_country_graced
+all_country_graced %>% filter(!is.na(country_name)) -> all_country_graced
+```
+
+```{r}
+all_country_graced
+```
 
 
+```{r}
+sqldf("SELECT A.amount_raised, B.*
+       FROM country_coord B INNER JOIN all_country_graced A
+                          ON A.country_name = B.country_name
+       ORDER BY amount_raised DESC") -> sum_country_graced
+```
+
+```{r}
+top_10_graced = head(sum_country_graced, 10)
+bottom_10_graced = tail(sum_country_graced, 20)
+```
+
+
+```{r}
+# moment of truth...
+leaflet() %>% addTiles() %>% addCircleMarkers(data = top_10_graced, lng = ~lon, lat = ~lat,
+                                              opacity = 1)
+```
+
+```{r}
+bottom_10_graced
+```
 
 
 ## crowdfunding and early stages
@@ -207,14 +232,16 @@ sqldf("SELECT SUM(raised_amount_usd) raised_amount, industry
        FROM no_seeding
        GROUP BY industry
        ORDER BY raised_amount DESC") -> sum_no_seeding
-sum_no_seeding = head(sum_no_seeding, 7)
-my_order = c(sum_seeding$industry)
-sum_seeding$industry <- factor(sum_seeding$industry, levels = my_order)
-
 sqldf("SELECT SUM(raised_amount_usd) raised_amount, industry
        FROM with_seeding
        GROUP BY industry
        ORDER BY raised_amount DESC") -> sum_seeding
+
+sum_no_seeding = head(sum_no_seeding, 7)
+my_order = c(sum_seeding$industry)
+sum_seeding$industry <- factor(sum_seeding$industry, levels = my_order)
+
+
 sum_seeding = head(sum_seeding, 7)
 ```
 
@@ -265,8 +292,6 @@ satf = og_data %>% filter(situation == "Series and transitionary funding")
 
 
 ```{r}
-satf %>% mutate(year = as.numeric(substr(announced_on, 1, 4))) -> satf
-
 sqldf("SELECT SUM(raised_amount_usd) raised_amount, year
       FROM satf
       GROUP BY year") -> pt1
@@ -279,32 +304,148 @@ ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuou
 
 
 ```{r}
-satf = og_data %>% filter(situation == "Series and transitionary funding")
-```
-
-```{r}
-satf
-```
-
-```{r}
-unique(satf$investment_type)
-```
-
-
-```{r}
-satf = og_data %>% filter(situation == "Series and transitionary funding")
-satf %>% mutate(year = as.numeric(substr(announced_on, 1, 4))) -> satf
 satf %>% filter(year > 1995) -> satf
 
 sqldf("SELECT AVG(raised_amount_usd) raised_amount, year
       FROM satf
       GROUP BY year") -> pt1
 
-ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuous(labels = scales::comma) + geom_smooth(fill = NA) + ggtitle("Averages of amount raised per series and transitionary funding") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Sum of amount raised") + xlab("Year")
+ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuous(labels = scales::comma) + geom_smooth(fill = NA) + ggtitle("Averages of amount raised per series and transitionary funding") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Averages of amount raised") + xlab("Year")
+```
+
+## series industry
+
+Best industries that have a great sales pitch 
+
+```{r}
+series_industry = og_with_industries %>% filter(situation == "Series and transitionary funding")
 ```
 
 
 ```{r}
-og_data
+sqldf("SELECT SUM(raised_amount_usd) raised_amount, industry
+       FROM series_industry
+       GROUP BY industry
+       ORDER BY raised_amount DESC") -> sum_industry_series
+sum_industry_series = head(sum_industry_series, 7)
+sum_industry_series
+
+
+```
+
+```{r}
+my_order = sum_industry_series$industry
+sum_industry_series$industry <- factor(sum_industry_series$industry, levels = my_order)
+ggplot(sum_industry_series, aes(y=raised_amount, x=industry)) + 
+    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 industries raised by investment type (Series and Transitionary Funding)") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 10)) + xlab("Industry") + ylab("Summation of amount raised")
+```
+
+## Liquidity Coverages
+
+```{r}
+liquid = og_data %>% filter(situation == "Liquidity Coverages")
+```
+
+
+```{r}
+sqldf("SELECT SUM(raised_amount_usd) raised_amount, investment_type, year
+      FROM liquid
+      GROUP BY year, investment_type") -> pt1
+```
+
+
+```{r}
+ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-2500000000, 20000000000)) + geom_smooth(fill = NA) + ggtitle("Summations of debt") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Sum of amount raised") + xlab("Year") + facet_grid(investment_type ~ .) + scale_x_continuous(breaks = scales::pretty_breaks(n = 10))
+```
+
+
+## Liquidity Coverage Industry
+
+```{r}
+liquid_industries = og_with_industries %>% filter(situation == "Liquidity Coverages")
+```
+
+```{r}
+sqldf("SELECT AVG(raised_amount_usd) raised_amount, industry
+       FROM liquid_industries
+       GROUP BY industry
+       ORDER BY raised_amount DESC") -> avg_industry_liquid_1
+avg_industry_liquid = head(avg_industry_liquid_1, 7)
+```
+
+```{r}
+my_order = avg_industry_liquid$industry
+avg_industry_liquid$industry <- factor(avg_industry_liquid$industry, levels = my_order)
+ggplot(avg_industry_liquid, aes(y=raised_amount, x=industry)) + 
+    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 average debt industries") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 10)) + xlab("Industry") + ylab("Average of amount")
+```
+
+```{r}
+liquid
+
+sqldf("SELECT SUM(raised_amount_usd) raised_amount, country_name
+       FROM liquid
+       GROUP BY country_name
+       ORDER BY raised_amount DESC") -> liquid_countries
+top_liquid_countries = head(liquid_countries, 9)
+```
+
+```{r}
+top_liquid_countries
+```
+
+```{r}
+my_order = top_liquid_countries$country_name
+top_liquid_countries$country_name <- factor(top_liquid_countries$country_name, levels = my_order)
+ggplot(top_liquid_countries, aes(y=raised_amount, x=country_name)) + 
+    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 average debt industries") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 10), axis.text.x = element_text(angle = 30)) + xlab("Industry") + ylab("Average debt")
+```
+
+## Late Game Safety
+
+```{r}
+lgs = og_data %>% filter(situation == "Late Game Safety")
+lgs
+```
+
+```{r}
+sqldf("SELECT SUM(raised_amount_usd) raised_amount, investment_type, year
+      FROM lgs
+      GROUP BY year, investment_type") -> pt1
+pt1 %>% filter(year > 1990)
+```
+
+```{r}
+ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-5000000, 30000000)) + geom_smooth(fill = NA) + ggtitle("Summation of amount raised per investment type (Graced)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Sum of amount raised") + xlab("Year") + facet_grid(investment_type ~ .) + scale_x_continuous(breaks = scales::pretty_breaks(n = 10))
+```
+```{r}
+ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-5000000000, 30000000000)) + geom_smooth(method = "lm", fill = NA) + ggtitle("Summation of amount raised per investment type (Graced)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Sum of amount raised") + xlab("Year")
+```
+
+```{r}
+pt2 = pt1 %>% filter(investment_type == "corporate_round")
+ggplot(pt2, aes(x = year, y = raised_amount)) + geom_point() + geom_smooth(fill = NA) + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-100000000, 7000000000)) + scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) + ylab("Sum of amount raised") + xlab("Year") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10)) + ggtitle("Summation of amount raised per investment type (Corporate Round)")
+```
+
+
+```{r}
+pt3 = pt1 %>% filter(investment_type != "corporate_round")
+ggplot(pt3, aes(x = year, y = raised_amount)) + geom_point() + geom_smooth(fill = NA) + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-2500000000, 30000000000)) + scale_x_continuous(breaks = scales::pretty_breaks(n = 11)) + ylab("Sum of amount raised") + xlab("Year") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10)) + ggtitle("Summation of amount raised per investment type (Private Equity Round)")
+```
+
+2017 seems like a wild year
+
+```{r}
+lgs_wo = lgs %>% filter(raised_amount_usd != max(raised_amount_usd))
+lgs_wo
+lgs_w = lgs %>% filter(raised_amount_usd == max(raised_amount_usd))
+lgs_w %>% select(company_name, announced_on, raised_amount_usd)
+```
+
+```{r}
+sqldf("SELECT SUM(raised_amount_usd) raised_amount, investment_type, year
+      FROM lgs_wo
+      GROUP BY year, investment_type") -> pt4
+pt5 = pt4 %>% filter(investment_type != "corporate_round")
 ```
 
