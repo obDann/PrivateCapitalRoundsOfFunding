@@ -9,6 +9,7 @@ library(countrycode)
 library(sqldf)
 library(ggmap)
 library(leaflet)
+library(ggrepel)
 ```
 
 ```{r}
@@ -534,15 +535,177 @@ ggplot(avg_industry_pub, aes(y=raised_amount, x=industry)) +
 
 ## Distributions of funding, not including industry
 
-boxplot by situation
+pie graph by situation
 
 ```{r}
-out_liar = og_data %>% filter(raised_amount_usd < 100000000)
-ggplot(out_liar, aes(x = situation, y = raised_amount_usd)) + geom_boxplot()
+sqldf("SELECT SUM(raised_amount_usd) raised_amount, situation
+       FROM og_data
+       GROUP BY situation") -> for_pie
 ```
 
-Graced and crowdfunding seem similar
+```{r}
+for_pie
+```
 
-Late Game Safety and Publicity
+```{r}
+for_pie
+for_pie %>%  mutate(Situation = paste(situation, "-", round(raised_amount * 100 / sum(raised_amount), 2), "%")) -> for_pie
 
-Transitionary funding and liquidity coverage
+ggplot(for_pie, aes(x = "", y = raised_amount, fill = Situation)) + geom_bar(width=1, stat="identity") + coord_polar("y", start = 0) + scale_fill_brewer(palette="Blues") +
+  theme_minimal() + ylab("Proportion of amount raised") + ggtitle("Situation and amount raised") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.8, size = 17.5), axis.ticks = element_blank(), panel.grid  = element_blank(), axis.text = element_blank()) + xlab("")
+```
+
+Taking a look at averages
+
+```{r}
+sqldf("SELECT avg(raised_amount_usd) raised_amount, situation
+       FROM og_data
+       GROUP BY situation
+       ORDER BY raised_amount DESC") -> for_comp
+```
+
+```{r}
+for_comp
+```
+
+```{r}
+my_order = for_comp$situation
+for_comp$situation <- factor(for_comp$situation, levels = my_order)
+ggplot(for_comp, aes(y=raised_amount, x=situation, fill = situation)) + 
+    geom_bar(position="stack", stat="identity") + scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 10), axis.text.x = element_blank())
+```
+
+We can do a contrast analysis on crowdfunding and Graced, as well as liquidity coverages and series
+
+```{r}
+fcntrs  = og_data %>% mutate(situ_factor = factor(situation))
+fcntrs
+# get levels
+levels(fcntrs$situ_factor)
+```
+
+
+```{r}
+# graced and crowdfunding
+hyp_gac = c(1, -1, 0, 0, 0, 0)
+# liquidity and series
+hyp_las = c(0, 0, 0, 1, 0, -1)
+# validating summation
+sum(hyp_gac)
+sum(hyp_las)
+# orthogonality
+sum(hyp_gac * hyp_las)
+```
+
+```{r}
+m = cbind(hyp_gac, hyp_las)
+contrasts(fcntrs$situ_factor)<-m
+save_lm = lm(raised_amount_usd ~ situ_factor, data = fcntrs) 
+summary(save_lm)
+```
+
+High p-val = they do not differ
+low p-val = they do differ
+
+
+## Dilution
+```{r}
+dilu_sample = og_data %>% filter(!is.na(post_money_valuation_usd)) %>% mutate(investor_ownership = ifelse(investor_ownership > 1, 1, investor_ownership))
+```
+
+```{r}
+ggplot(dilu_sample, aes(x = situation, y = investor_ownership, fill = situation)) + geom_boxplot() + theme( plot.title=element_text(hjust = 0.5, size = 10), axis.text.x = element_blank(), axis.ticks.x = element_blank())
+```
+
+```{r}
+library(doBy)
+mean_save = summaryBy(investor_ownership ~ situation, data = dilu_sample, 
+            FUN = list(mean))
+mean_save %>% arrange(desc(investor_ownership.mean))
+```
+
+
+```{r}
+diluf_con  = dilu_sample %>% mutate(situ_factor = factor(situation))
+# get levels
+levels(diluf_con$situ_factor)
+```
+
+crowdfunding, graced, liquidity
+series and publicity
+```{r}
+hyp_cg = c(1, -1, 0, 0, 0, 0)
+# hyp_clq = c(1, 0, 0, -1, 0, 0)
+#hyp_glq = c(0, 1, 0, -1, 0, 0)
+hyp_sp = c(0, 0, 0, 0, 1, -1)
+
+# validating ortogonality
+sum(hyp_cg * hyp_sp)
+m = cbind(hyp_cg, hyp_sp)
+```
+
+```{r}
+contrasts(diluf_con$situ_factor)<-m
+save_lm = lm(raised_amount_usd ~ situ_factor, data = diluf_con) 
+summary(save_lm)
+```
+```{r}
+hyp_clq = c(1, 0, 0, -1, 0, 0)
+#hyp_glq = c(0, 1, 0, -1, 0, 0)
+m = cbind(hyp_clq)
+contrasts(diluf_con$situ_factor)<-m
+save_lm = lm(raised_amount_usd ~ situ_factor, data = diluf_con) 
+summary(save_lm)
+```
+
+```{r}
+hyp_glq = c(0, 1, 0, -1, 0, 0)
+#hyp_glq = c(0, 1, 0, -1, 0, 0)
+m = cbind(hyp_glq)
+contrasts(diluf_con$situ_factor)<-m
+save_lm = lm(raised_amount_usd ~ situ_factor, data = diluf_con) 
+summary(save_lm)
+```
+
+
+## Total amount of money per region
+
+```{r}
+sqldf("SELECT SUM(raised_amount_usd) amount_raised, ciaco, lon, lat
+       FROM og_data
+       GROUP BY ciaco, lon, lat") -> sum_ciaco
+sum_ciaco
+```
+
+```{r}
+max(sum_ciaco$raised_amount)
+```
+
+
+```{r}
+my_pal = colorBin(c("#BEB8EB", "#345270", "#203244"), domain = 1:7, bins = 6)
+pspal = c(my_pal(1), my_pal(2), my_pal(3), my_pal(4), my_pal(5), my_pal(6))
+
+the_min = 0
+
+start_rng = c(0, 10000001, 100000001, 1000000001, 10000000001, 25000000001)
+end_rng = c(10000000, 100000000, 1000000000, 10000000000, 25000000000, max(sum_ciaco$amount_raised))
+
+alt_pal = data.frame(start_rng, end_rng, pspal)
+alt_pal = alt_pal %>% mutate(start_rng = as.numeric(start_rng), end_rng = as.numeric(end_rng))
+labels = c("0 - 10,000,000", "10,000,001 - 100,000,000", "100,000,001 - 1,000,000,000", "1,000,000,001 - 10,000,000,000", "10,000,000,001 - 25,000,000,000", "25,000,000,000+")
+
+alt_pal %>% mutate(range_str = labels) -> alt_pal
+
+sqldf("SELECT sum_ciaco.*, alt_pal.*
+       FROM sum_ciaco INNER JOIN alt_pal
+                       ON sum_ciaco.amount_raised >= alt_pal.start_rng
+                       AND sum_ciaco.amount_raised <= alt_pal.end_rng") -> with_pals
+```
+
+```{r}
+leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>% addCircleMarkers(data = with_pals, lng = ~lon, lat = ~lat,
+                                               color = ~pspal, opacity = 0.65, radius = 10) %>% 
+  addLegend(data = with_pals, colors = pspal, title = "Summation of amount raised per city (Aggregate)", labels = alt_pal$range_str)
+```
+
