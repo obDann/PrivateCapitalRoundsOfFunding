@@ -69,14 +69,14 @@ pt1
 
 
 ```{r}
-ggplot(pt1, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + scale_y_continuous(labels = scales::comma) + geom_smooth(method = "lm", fill = NA) + ggtitle("Summation of amount raised per investment type (Graced)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Sum of amount raised") + xlab("Year")
+ggplot(pt1, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + scale_y_continuous(labels = scales::comma) + geom_smooth(method = "lm", fill = NA) + ggtitle("Summation of amount raised per investment type (Graced)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5))  + ylab("Sum of amount raised") + xlab("Year") + labs(colour = "Investment Type")
 ```
 
 Fairly difficult to say how close pre-seeding and non_equity assistance is 
 
 ```{r}
 pt2 = pt1 %>% filter(investment_type == "pre_seed" | investment_type == "non_equity_assistance")
-ggplot(pt2, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + geom_smooth(method="lm", fill = NA) + scale_y_continuous(labels = scales::comma) + ylab("Sum of amount raised") + xlab("Year") + ggtitle("Summation of amount raised per investment type (Graced)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))
+ggplot(pt2, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + geom_smooth(method="lm", fill = NA) + scale_y_continuous(labels = scales::comma) + ylab("Sum of amount raised") + xlab("Year") + ggtitle("Summation of amount raised per investment type (Graced)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5)) + labs(colour = "Investment Type")
 ```
 
 
@@ -121,7 +121,7 @@ sum_industry_graced_comp$industry <- factor(sum_industry_graced_comp$industry, l
 
 ```{r}
 ggplot(sum_industry_graced_comp, aes(fill=investment_type, y=raised_amount_comparison, x=industry)) + 
-    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 industries raised by investment type (graced)") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 10)) + xlab("Industry") + ylab("Summation of amount raised")
+    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 industries raised by investment type (Graced)") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5)) + xlab("Industry") + ylab("Summation of amount raised") + guides(fill = guide_legend(title="Investment Type"))
 ```
 Further pursuit in health consists of grants
 technological companies consists of angels
@@ -215,24 +215,22 @@ og_data %>% filter(situation == "Crowdfunding and Early Stages") -> cfni
 ```
 
 ```{r}
-cfni %>% mutate(year = as.numeric(substr(announced_on, 1, 4))) -> cfni
-
 sqldf("SELECT SUM(raised_amount_usd) raised_amount, investment_type, year
       FROM cfni
       GROUP BY year, investment_type") -> pt1
 ```
 
 ```{r}
-pt1 %>% filter(year > 1990) -> pt1
+pt1 %>% filter(year > 1990) %>% filter(year != 2019) -> pt1
 ```
 
 ```{r}
-ggplot(pt1, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + scale_y_continuous(labels = scales::comma) + geom_smooth(method = "lm", fill = NA) + ggtitle("Summation of amount raised per investment type (Crowdfunding and Early Stages)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Sum of amount raised") + xlab("Year")
+ggplot(pt1, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-500000000, 8000000000)) + geom_smooth(fill = NA) + ggtitle("Summation of amount raised per investment type (Crowdfunding and Early Stages)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 12))  + ylab("Sum of amount raised") + xlab("Year") + labs(colour = "Investment Type") + scale_x_continuous(breaks = scales::pretty_breaks(n = 10))
 ```
 
 ```{r}
 pt1 %>% filter(investment_type != "seed") -> pt2
-ggplot(pt2, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + geom_smooth(method="lm", fill = NA) + scale_y_continuous(labels = scales::comma) + ylab("Sum of amount raised") + xlab("Year") + ggtitle("Summation of amount raised per investment type (Crowdfunding and Early Stages)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))
+ggplot(pt2, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + geom_smooth(method = "lm", fill = NA) + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-250000000, 1300000000)) + ylab("Sum of amount raised") + xlab("Year") + ggtitle("Summation of amount raised per investment type (Crowdfunding and Early Stages)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 12)) + scale_x_continuous(breaks = scales::pretty_breaks(n = 9)) + labs(colour = "Investment Type")
 ```
 
 ## Crowdfunding industry
@@ -295,12 +293,12 @@ sum_industry_ns_comp$industry <- factor(sum_industry_ns_comp$industry, levels = 
 
 ```{r}
 ggplot(sum_industry_ns_comp, aes(fill=investment_type, y=raised_amount_comparison, x=industry)) + 
-    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 industries raised by investment type (crowdfunding)") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 10)) + xlab("Industry") + ylab("Summation of amount raised")
+    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 industries raised by investment type (Crowdfunding and Early Stages)") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 15)) + xlab("Industry") + ylab("Summation of amount raised") + guides(fill = guide_legend(title="Investment Type"))
 ```
 
 ```{r}
 ggplot(sum_seeding, aes(y=raised_amount, x=industry)) + 
-    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 industries raised by investment type (seeding)") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 10)) + xlab("Industry") + ylab("Summation of amount raised")
+    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 industries raised by investment type (Seeding)") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 15)) + xlab("Industry") + ylab("Summation of amount raised")
 ```
 
 ## Series and transitionary funding
@@ -314,11 +312,12 @@ satf = og_data %>% filter(situation == "Series and transitionary funding")
 sqldf("SELECT SUM(raised_amount_usd) raised_amount, year
       FROM satf
       GROUP BY year") -> pt1
+pt1 = pt1 %>% filter(year != 2019)
 ```
 
 
 ```{r}
-ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuous(labels = scales::comma) + geom_smooth(fill = NA) + ggtitle("Summation of amount raised in Series and Transitionary Funding") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Sum of amount raised") + xlab("Year")
+ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-5000000000, 60000000000)) + geom_smooth(fill = NA) + ggtitle("Summation of amount raised in Series and Transitionary Funding") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 12))  + ylab("Sum of amount raised") + xlab("Year") + scale_x_continuous(breaks = scales::pretty_breaks(n = 10))
 ```
 
 
@@ -328,8 +327,7 @@ satf %>% filter(year > 1995) -> satf
 sqldf("SELECT AVG(raised_amount_usd) raised_amount, year
       FROM satf
       GROUP BY year") -> pt1
-
-ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuous(labels = scales::comma) + geom_smooth(fill = NA) + ggtitle("Averages of amount raised per series and transitionary funding") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Averages of amount raised") + xlab("Year")
+ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuous(labels = scales::comma) + geom_smooth(fill = NA) + ggtitle("Averages of amount raised per series and transitionary funding") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 12))  + ylab("Averages of amount raised") + xlab("Year") + scale_x_continuous(breaks = scales::pretty_breaks(n = 10))
 ```
 
 ## series industry
@@ -348,15 +346,13 @@ sqldf("SELECT SUM(raised_amount_usd) raised_amount, industry
        ORDER BY raised_amount DESC") -> sum_industry_series
 sum_industry_series = head(sum_industry_series, 7)
 sum_industry_series
-
-
 ```
 
 ```{r}
 my_order = sum_industry_series$industry
 sum_industry_series$industry <- factor(sum_industry_series$industry, levels = my_order)
 ggplot(sum_industry_series, aes(y=raised_amount, x=industry)) + 
-    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 industries raised by investment type (Series and Transitionary Funding)") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 10)) + xlab("Industry") + ylab("Summation of amount raised")
+    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 industries raised by investment type (Series and Transitionary Funding)") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 12), text = element_text(size = 15)) + xlab("Industry") + ylab("Summation of amount raised")
 ```
 
 ## Liquidity Coverages
@@ -370,11 +366,12 @@ liquid = og_data %>% filter(situation == "Liquidity Coverages")
 sqldf("SELECT SUM(raised_amount_usd) raised_amount, investment_type, year
       FROM liquid
       GROUP BY year, investment_type") -> pt1
+pt1 = pt1 %>% filter(year != 2019)
 ```
 
 
 ```{r}
-ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-2500000000, 20000000000)) + geom_smooth(fill = NA) + ggtitle("Summations of debt") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Sum of amount raised") + xlab("Year") + facet_grid(investment_type ~ .) + scale_x_continuous(breaks = scales::pretty_breaks(n = 10))
+ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-2500000000, 20000000000)) + geom_smooth(fill = NA) + ggtitle("Summations of debt") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 12))  + ylab("Sum of amount raised") + xlab("Year") + facet_grid(investment_type ~ .) + scale_x_continuous(breaks = scales::pretty_breaks(n = 10))
 ```
 
 
@@ -396,7 +393,7 @@ avg_industry_liquid = head(avg_industry_liquid_1, 7)
 my_order = avg_industry_liquid$industry
 avg_industry_liquid$industry <- factor(avg_industry_liquid$industry, levels = my_order)
 ggplot(avg_industry_liquid, aes(y=raised_amount, x=industry)) + 
-    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 average debt industries") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 10)) + xlab("Industry") + ylab("Average of amount")
+    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 average debt industries") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 12), text = element_text(size = 15)) + xlab("Industry") + ylab("Average of amount")
 ```
 
 ```{r}
@@ -417,7 +414,7 @@ top_liquid_countries
 my_order = top_liquid_countries$country_name
 top_liquid_countries$country_name <- factor(top_liquid_countries$country_name, levels = my_order)
 ggplot(top_liquid_countries, aes(y=raised_amount, x=country_name)) + 
-    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 average debt industries") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 10), axis.text.x = element_text(angle = 30)) + xlab("Industry") + ylab("Average debt")
+    geom_bar(position="stack", stat="identity") + ggtitle("Top 9 Countries debt (Summed)") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 12), axis.text.x = element_text(angle = 30)) + xlab("country") + ylab("Summed debt")
 ```
 
 ## Late Game Safety
@@ -431,22 +428,22 @@ lgs
 sqldf("SELECT SUM(raised_amount_usd) raised_amount, investment_type, year
       FROM lgs
       GROUP BY year, investment_type") -> pt1
-pt1 %>% filter(year > 1990)
+pt1 = pt1 %>% filter(year != 2019)
 ```
 
 ```{r}
-ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-5000000000, 30000000000)) + geom_smooth(method = "lm", fill = NA) + ggtitle("Summation of amount raised per investment type (Late Game Safety)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Sum of amount raised") + xlab("Year") + facet_grid(investment_type ~ .)
+ggplot(pt1, aes(x = year, y = raised_amount)) + geom_point() + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-5000000000, 30000000000)) + geom_smooth(method = "lm", fill = NA) + ggtitle("Summation of amount raised per investment type (Late Game Safety)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 12))  + ylab("Sum of amount raised") + xlab("Year") + scale_x_continuous(breaks = scales::pretty_breaks(n = 20)) + facet_grid(investment_type ~ .)
 ```
 
 ```{r}
 pt2 = pt1 %>% filter(investment_type == "corporate_round")
-ggplot(pt2, aes(x = year, y = raised_amount)) + geom_point() + geom_smooth(fill = NA) + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-100000000, 7000000000)) + scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) + ylab("Sum of amount raised") + xlab("Year") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10)) + ggtitle("Summation of amount raised per investment type (Corporate Round)")
+ggplot(pt2, aes(x = year, y = raised_amount)) + geom_point() + geom_smooth(fill = NA) + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-100000000, 7000000000)) + scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) + ylab("Sum of amount raised") + xlab("Year") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 12)) + ggtitle("Summation of amount raised per investment type (Corporate Round)")
 ```
 
 
 ```{r}
 pt3 = pt1 %>% filter(investment_type != "corporate_round")
-ggplot(pt3, aes(x = year, y = raised_amount)) + geom_point() + geom_smooth(fill = NA) + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-2500000000, 30000000000)) + scale_x_continuous(breaks = scales::pretty_breaks(n = 11)) + ylab("Sum of amount raised") + xlab("Year") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10)) + ggtitle("Summation of amount raised per investment type (Private Equity Round)")
+ggplot(pt3, aes(x = year, y = raised_amount)) + geom_point() + geom_smooth(fill = NA) + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-2500000000, 30000000000)) + scale_x_continuous(breaks = scales::pretty_breaks(n = 11)) + ylab("Sum of amount raised") + xlab("Year") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 12)) + ggtitle("Summation of amount raised per investment type (Private Equity Round)")
 ```
 
 2017 seems like a wild year
@@ -465,6 +462,15 @@ sqldf("SELECT SUM(raised_amount_usd) raised_amount, investment_type, year
 pt5 = pt4 %>% filter(investment_type != "corporate_round")
 ```
 
+```{r}
+pt5 = pt5 %>% filter(year != 2019)
+```
+
+```{r}
+ggplot(pt5, aes(x = year, y = raised_amount)) + geom_point() + geom_smooth(fill = NA) + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-1000000000, 8000000000)) + scale_x_continuous(breaks = scales::pretty_breaks(n = 11)) + ylab("Sum of amount raised") + xlab("Year") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10)) + ggtitle("Summation of amount raised per investment type (Private Equity Round without Tsinghua Unigroup)")
+```
+
+
 ## Publicity and Beyond
 
 ```{r}
@@ -479,7 +485,7 @@ pt1 = pt1 %>% filter(year != 2019)
 ```
 
 ```{r}
-ggplot(pt1, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + scale_y_continuous(labels = scales::comma) + geom_smooth(method = "lm", fill = NA) + ggtitle("Summation of amount raised per investment type (Publicity and Beyond)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Sum of amount raised") + xlab("Year")
+ggplot(pt1, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-2500000000, 15000000000)) + geom_smooth(method = "lm", fill = NA) + ggtitle("Summation of amount raised per investment type (Publicity and Beyond)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 12))  + ylab("Sum of amount raised") + xlab("Year") + scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) + labs(colour = "Investment Type")
 ```
 
 We may want to look at post_ipo equity and ICO separately
@@ -487,7 +493,7 @@ We may want to look at post_ipo equity and ICO separately
 
 ```{r}
 pt2 = pt1 %>% filter(investment_type != "post_ipo_equity") 
-ggplot(pt2, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-250000000, 1500000000)) + geom_smooth(method = "lm", fill = NA) + ggtitle("Summation of amount raised per investment type (Publicity and Beyond)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 10))  + ylab("Sum of amount raised") + xlab("Year") +scale_x_continuous(breaks = scales::pretty_breaks(n = 9))
+ggplot(pt2, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + scale_y_continuous(labels = scales::comma, expand = c(0, 0), limits = c(-250000000, 1500000000)) + geom_smooth(method = "lm", fill = NA) + ggtitle("Summation of amount raised per investment type (Publicity and Beyond)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 12))  + ylab("Sum of amount raised") + xlab("Year") +scale_x_continuous(breaks = scales::pretty_breaks(n = 9)) + labs(colour = "Investment Type")
 ```
 
 ```{r}
@@ -516,7 +522,7 @@ sum_industry_pub_all
 my_order = sum_industry_pub$industry
 sum_industry_pub$industry <- factor(sum_industry_pub$industry, levels = my_order)
 ggplot(sum_industry_pub, aes(y=raised_amount, x=industry)) + 
-    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 industries within the public by total amount raised") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 10)) + xlab("Industry") + ylab("Summation of amount raised")
+    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 industries within the public by total amount raised") +  scale_y_continuous(labels = scales::comma) + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 12)) + xlab("Industry") + ylab("Summation of amount raised")
 ```
 
 ```{r}
@@ -529,7 +535,7 @@ avg_industry_pub = head(avg_industry_pub_all, 7)
 my_order = avg_industry_pub$industry
 avg_industry_pub$industry <- factor(avg_industry_pub$industry, levels = my_order)
 ggplot(avg_industry_pub, aes(y=raised_amount, x=industry)) + 
-    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 industries within the public by average") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 10)) + xlab("Industry") + ylab("Average of amount raised")
+    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 industries within the public by average") +  scale_y_continuous(labels = scales::comma) + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 12)) + xlab("Industry") + ylab("Average of amount raised")
 ```
 
 
@@ -572,7 +578,7 @@ for_comp
 my_order = for_comp$situation
 for_comp$situation <- factor(for_comp$situation, levels = my_order)
 ggplot(for_comp, aes(y=raised_amount, x=situation, fill = situation)) + 
-    geom_bar(position="stack", stat="identity") + scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 10), axis.text.x = element_blank())
+    geom_bar(position="stack", stat="identity") + scale_y_continuous(labels = scales::comma) + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 12), axis.text.x = element_blank(), axis.ticks.x = element_blank()) + guides(fill = guide_legend(title="Situation")) + ggtitle("Summation of money raised per situation")
 ```
 
 We can do a contrast analysis on crowdfunding and Graced, as well as liquidity coverages and series
@@ -610,11 +616,11 @@ low p-val = they do differ
 
 ## Dilution
 ```{r}
-dilu_sample = og_data %>% filter(!is.na(post_money_valuation_usd)) %>% mutate(investor_ownership = ifelse(investor_ownership > 1, 1, investor_ownership))
+dilu_sample = og_data %>% filter(!is.na(post_money_valuation_usd)) %>% mutate(investor_ownership = ifelse(investor_ownership > 1, 100, round(investor_ownership * 100, 2)))
 ```
 
 ```{r}
-ggplot(dilu_sample, aes(x = situation, y = investor_ownership, fill = situation)) + geom_boxplot() + theme( plot.title=element_text(hjust = 0.5, size = 10), axis.text.x = element_blank(), axis.ticks.x = element_blank())
+ggplot(dilu_sample, aes(x = situation, y = investor_ownership, fill = situation)) + geom_boxplot() + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 15), axis.text.x = element_blank(), axis.ticks.x = element_blank()) + ggtitle("Investor Ownership per Situation (%)") + labs(fill = "Investment Type")
 ```
 
 ```{r}
