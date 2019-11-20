@@ -60,6 +60,7 @@ graced = og_data %>% filter(situation == "Graced")
 sqldf("SELECT SUM(raised_amount_usd) raised_amount, investment_type, year
       FROM graced
       GROUP BY year, investment_type") -> pt1
+pt1 = pt1 %>% filter(year != 2019)
 ```
 
 ```{r}
@@ -69,14 +70,14 @@ pt1
 
 
 ```{r}
-ggplot(pt1, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + scale_y_continuous(labels = scales::comma) + geom_smooth(method = "lm", fill = NA) + ggtitle("Summation of amount raised per investment type (Graced)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5))  + ylab("Sum of amount raised") + xlab("Year") + labs(colour = "Investment Type")
+ggplot(pt1, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + scale_y_continuous(labels = scales::comma) + geom_smooth(method = "lm", fill = NA) + ggtitle("Summation of amount raised per investment type (Graced)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5))  + ylab("Sum of amount raised") + xlab("Year") + labs(colour = "Investment Type") + scale_x_continuous(breaks = scales::pretty_breaks(n = 10))
 ```
 
 Fairly difficult to say how close pre-seeding and non_equity assistance is 
 
 ```{r}
 pt2 = pt1 %>% filter(investment_type == "pre_seed" | investment_type == "non_equity_assistance")
-ggplot(pt2, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + geom_smooth(method="lm", fill = NA) + scale_y_continuous(labels = scales::comma) + ylab("Sum of amount raised") + xlab("Year") + ggtitle("Summation of amount raised per investment type (Graced)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5)) + labs(colour = "Investment Type")
+ggplot(pt2, aes(x = year, y = raised_amount, color = investment_type)) + geom_point() + geom_smooth(method="lm", fill = NA) + scale_y_continuous(labels = scales::comma) + ylab("Sum of amount raised") + xlab("Year") + ggtitle("Summation of amount raised per investment type (Graced)") + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5)) + labs(colour = "Investment Type") + scale_x_continuous(breaks = scales::pretty_breaks(n = 10))
 ```
 
 
@@ -390,6 +391,12 @@ avg_industry_liquid = head(avg_industry_liquid_1, 7)
 ```
 
 ```{r}
+
+```
+
+
+
+```{r}
 my_order = avg_industry_liquid$industry
 avg_industry_liquid$industry <- factor(avg_industry_liquid$industry, levels = my_order)
 ggplot(avg_industry_liquid, aes(y=raised_amount, x=industry)) + 
@@ -415,6 +422,22 @@ my_order = top_liquid_countries$country_name
 top_liquid_countries$country_name <- factor(top_liquid_countries$country_name, levels = my_order)
 ggplot(top_liquid_countries, aes(y=raised_amount, x=country_name)) + 
     geom_bar(position="stack", stat="identity") + ggtitle("Top 9 Countries debt (Summed)") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 12), axis.text.x = element_text(angle = 30)) + xlab("country") + ylab("Summed debt")
+```
+
+
+```{r}
+sqldf("SELECT AVG(raised_amount_usd) raised_amount, country_name
+       FROM liquid
+       GROUP BY country_name
+       ORDER BY raised_amount DESC") -> liquid_countries
+top_liquid_countries = head(liquid_countries, 7)
+```
+
+```{r}
+my_order = top_liquid_countries$country_name
+top_liquid_countries$country_name <- factor(top_liquid_countries$country_name, levels = my_order)
+ggplot(top_liquid_countries, aes(y=raised_amount, x=country_name)) + 
+    geom_bar(position="stack", stat="identity") + ggtitle("Top 7 Countries debt (Average)") +  scale_y_continuous(labels = scales::comma) + theme( plot.title=element_text(hjust = 0.5, size = 12), axis.text.x = element_text(angle = 30), text=element_text(size=15)) + xlab("country") + ylab("Average debt")
 ```
 
 ## Late Game Safety
@@ -452,7 +475,7 @@ ggplot(pt3, aes(x = year, y = raised_amount)) + geom_point() + geom_smooth(fill 
 lgs_wo = lgs %>% filter(raised_amount_usd != max(raised_amount_usd))
 lgs_wo
 lgs_w = lgs %>% filter(raised_amount_usd == max(raised_amount_usd))
-lgs_w %>% select(company_name, announced_on, raised_amount_usd)
+lgs_w %>% select(company_name, announced_on, raised_amount_usd, investment_type)
 ```
 
 ```{r}
@@ -578,7 +601,7 @@ for_comp
 my_order = for_comp$situation
 for_comp$situation <- factor(for_comp$situation, levels = my_order)
 ggplot(for_comp, aes(y=raised_amount, x=situation, fill = situation)) + 
-    geom_bar(position="stack", stat="identity") + scale_y_continuous(labels = scales::comma) + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 12), axis.text.x = element_blank(), axis.ticks.x = element_blank()) + guides(fill = guide_legend(title="Situation")) + ggtitle("Summation of money raised per situation")
+    geom_bar(position="stack", stat="identity") + scale_y_continuous(labels = scales::comma) + theme(text = element_text(size = 15), plot.title=element_text(hjust = 0.5, size = 12), axis.text.x = element_blank(), axis.ticks.x = element_blank()) + guides(fill = guide_legend(title="Situation")) + ggtitle("Averages of money raised per situation")
 ```
 
 We can do a contrast analysis on crowdfunding and Graced, as well as liquidity coverages and series
